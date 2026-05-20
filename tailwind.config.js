@@ -12,9 +12,9 @@ export default {
         },
       },
       boxShadow: {
-        'note': '0 2px 6px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)',
-        'note-hover': '0 4px 10px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)',
-        'note-drag': '0 14px 28px rgba(0,0,0,0.22), 0 6px 10px rgba(0,0,0,0.12)',
+        'note': '0 3px 6px rgba(60, 35, 15, 0.22), 0 1px 2px rgba(60, 35, 15, 0.18)',
+        'note-hover': '0 6px 14px rgba(60, 35, 15, 0.3), 0 2px 4px rgba(60, 35, 15, 0.2)',
+        'note-drag': '0 18px 32px rgba(60, 35, 15, 0.42), 0 8px 14px rgba(60, 35, 15, 0.25)',
       },
     },
   },

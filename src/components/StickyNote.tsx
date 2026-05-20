@@ -156,7 +156,7 @@ export default function StickyNote({
 
   return (
     <div
-      className={`absolute select-none rounded-md ${
+      className={`absolute select-none rounded-[2px] ${
         dragging
           ? 'shadow-note-drag z-50'
           : selected
