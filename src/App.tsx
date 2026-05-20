@@ -416,6 +416,7 @@ export default function App() {
               memo={m}
               onClose={() => setExpandedId(null)}
               onUpdate={updates => store.updateMemo(m.id, updates)}
+              onShare={() => handleShareMemo(m.id)}
               onOcrRequest={
                 m.type === 'image'
                   ? naturalBox => {

@@ -11,9 +11,11 @@ type Props = {
   onUpdate?: (updates: Partial<Memo>) => void
   /** 이미지 위에서 드래그가 끝났을 때 호출. 호출되면 부모가 OCR 모달로 전환한다. */
   onOcrRequest?: (naturalBox: Box) => void
+  /** 공유 버튼 클릭. ShareModal을 띄우는 부모 콜백. */
+  onShare?: () => void
 }
 
-export default function MemoModal({ memo, onClose, onUpdate, onOcrRequest }: Props) {
+export default function MemoModal({ memo, onClose, onUpdate, onOcrRequest, onShare }: Props) {
   const imgRef = useRef<HTMLImageElement>(null)
   const dragRef = useRef<{ startX: number; startY: number } | null>(null)
   const boxRef = useRef<Box | null>(null)
@@ -140,17 +142,29 @@ export default function MemoModal({ memo, onClose, onUpdate, onOcrRequest }: Pro
         style={{ background: COLOR_HEX[memo.color] }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-4 py-2 border-b border-black/10 bg-black/5">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-black/10 bg-black/5">
           <span className="text-xs text-black/55">
             {new Date(memo.updatedAt).toLocaleString('ko-KR')}
           </span>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded hover:bg-black/10 text-black/60 hover:text-black text-xl leading-none flex items-center justify-center"
-            title="닫기 (Esc)"
-          >
-            ×
-          </button>
+          <div className="flex items-center gap-1 ml-auto">
+            {onShare && (
+              <button
+                onClick={onShare}
+                className="h-7 px-2 rounded hover:bg-black/10 text-black/60 hover:text-black text-xs flex items-center gap-1"
+                title="이 메모를 공유 링크로 만들기"
+              >
+                <span>🔗</span>
+                <span>공유</span>
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded hover:bg-black/10 text-black/60 hover:text-black text-xl leading-none flex items-center justify-center"
+              title="닫기 (Esc)"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         <div className="overflow-auto p-6 flex flex-col items-center gap-4">
