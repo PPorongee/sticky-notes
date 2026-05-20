@@ -10,6 +10,7 @@ type Props = {
   onColorChange: (id: string, color: MemoColor) => void
   onDelete: (id: string) => void
   onExpand: (id: string) => void
+  onShare: (id: string) => void
   onDragStart: (id: string) => void
   onDragMove: (pt: { x: number; y: number }) => void
   onDragEnd: () => void
@@ -31,6 +32,7 @@ export default function Board({
   onColorChange,
   onDelete,
   onExpand,
+  onShare,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -89,6 +91,7 @@ export default function Board({
           onColorChange={c => onColorChange(m.id, c)}
           onDelete={() => onDelete(m.id)}
           onExpand={() => onExpand(m.id)}
+          onShare={() => onShare(m.id)}
           onDragStart={() => onDragStart(m.id)}
           onDragMove={(x, y) => onDragMove({ x, y })}
           onDragEnd={() => onDragEnd()}

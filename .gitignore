@@ -8,3 +8,6 @@ dist-ssr
 .omc
 .claude
 .vercel
+
+.vercel
+.env*.local

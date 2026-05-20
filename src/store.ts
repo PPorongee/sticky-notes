@@ -31,6 +31,7 @@ export function useMemoStore() {
         id: uid(),
         type: partial.type,
         content: partial.content,
+        images: partial.images,
         x: partial.x ?? pos.x,
         y: partial.y ?? pos.y,
         width: partial.width ?? (partial.type === 'image' ? 320 : 220),

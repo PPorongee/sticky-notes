@@ -10,6 +10,7 @@ type Props = {
   onColorChange: (color: MemoColor) => void
   onDelete: () => void
   onExpand: () => void
+  onShare: () => void
   onDragStart: () => void
   onDragMove: (clientX: number, clientY: number) => void
   onDragEnd: () => void
@@ -24,6 +25,7 @@ export default function StickyNote({
   onColorChange,
   onDelete,
   onExpand,
+  onShare,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -227,6 +229,16 @@ export default function StickyNote({
           </div>
         )}
         <div className="flex items-center gap-0.5 shrink-0 ml-auto">
+          <button
+            className="text-black/40 hover:text-black hover:bg-black/5 rounded w-5 h-5 leading-none text-xs flex items-center justify-center"
+            onClick={e => {
+              e.stopPropagation()
+              onShare()
+            }}
+            title="이 메모를 공유 링크로 만들기"
+          >
+            🔗
+          </button>
           <button
             className="text-black/40 hover:text-black hover:bg-black/5 rounded w-5 h-5 leading-none text-lg flex items-center justify-center"
             onClick={e => {

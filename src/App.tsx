@@ -6,8 +6,12 @@ import TrashPanel from './components/TrashPanel'
 import Toast from './components/Toast'
 import MemoModal from './components/MemoModal'
 import OcrModal from './components/OcrModal'
+import ShareModal from './components/ShareModal'
+import ImportPreview from './components/ImportPreview'
 import { useMemoStore } from './store'
 import { blobToDataUrl, detectType } from './utils'
+import type { SharePayload } from './share'
+import type { Memo } from './types'
 
 function htmlClipboardToText(html: string): string {
   // <br>, 블록 요소 닫는 태그를 줄바꿈으로 치환한 뒤 textContent로 추출
@@ -31,6 +35,10 @@ export default function App() {
   >(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null)
+  const [sharePayload, setSharePayload] = useState<{ payload: SharePayload; title: string } | null>(
+    null,
+  )
+  const [importId, setImportId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ key: number; message: string; onUndo: () => void } | null>(
     null,
   )
@@ -141,6 +149,76 @@ export default function App() {
   const handleCreateEmpty = useCallback(() => {
     store.createMemo({ type: 'text', content: '' })
   }, [store])
+
+  // ?s=<id> URL로 들어왔으면 import 흐름 시작
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const s = params.get('s')
+    if (s) setImportId(s)
+  }, [])
+
+  const handleShareBoard = useCallback(() => {
+    if (active.length === 0) return
+    setSharePayload({
+      payload: {
+        version: 1,
+        kind: 'board',
+        createdAt: Date.now(),
+        memos: active,
+      },
+      title: `보드 공유 (${active.length}개 메모)`,
+    })
+  }, [active])
+
+  const handleShareMemo = useCallback(
+    (id: string) => {
+      const memo = active.find(m => m.id === id)
+      if (!memo) return
+      setSharePayload({
+        payload: {
+          version: 1,
+          kind: 'memo',
+          createdAt: Date.now(),
+          memos: [memo],
+        },
+        title: '메모 공유',
+      })
+    },
+    [active],
+  )
+
+  const handleImportMemos = useCallback(
+    (memos: Memo[]) => {
+      for (const m of memos) {
+        store.createMemo({
+          type: m.type,
+          content: m.content,
+          color: m.color,
+          images: m.images,
+          width: m.width,
+          height: m.height,
+        })
+      }
+      setImportId(null)
+      // 주소창의 ?s=<id> 정리해서 새로고침 시 다시 import 모달이 안 뜨도록
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        url.searchParams.delete('s')
+        window.history.replaceState({}, '', url.toString())
+      }
+    },
+    [store],
+  )
+
+  const handleImportCancel = useCallback(() => {
+    setImportId(null)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('s')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   const hasFiles = (dt: DataTransfer | null) =>
     !!dt && Array.from(dt.types).includes('Files')
@@ -285,6 +363,7 @@ export default function App() {
         onColorChange={store.setColor}
         onDelete={handleDeleteWithToast}
         onExpand={setExpandedId}
+        onShare={handleShareMemo}
         onDragStart={setDraggingId}
         onDragMove={setPointer}
         onDragEnd={() => {
@@ -297,6 +376,8 @@ export default function App() {
         query={query}
         onQueryChange={setQuery}
         onCreateEmpty={handleCreateEmpty}
+        onShareBoard={handleShareBoard}
+        shareDisabled={active.length === 0}
         searchRef={searchRef}
       />
 
@@ -371,6 +452,22 @@ export default function App() {
             />
           )
         })()}
+
+      {sharePayload && (
+        <ShareModal
+          payload={sharePayload.payload}
+          title={sharePayload.title}
+          onClose={() => setSharePayload(null)}
+        />
+      )}
+
+      {importId && (
+        <ImportPreview
+          shareId={importId}
+          onClose={handleImportCancel}
+          onImport={handleImportMemos}
+        />
+      )}
 
       {toast && (
         <Toast
