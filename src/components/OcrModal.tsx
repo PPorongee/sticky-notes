@@ -5,7 +5,6 @@ import { recognizeText } from '../ocr'
 type Props = {
   memo: Memo
   onClose: () => void
-  onCreateTextMemo: (text: string) => void
   /** 모달이 열릴 때 미리 인식할 영역 (원본 이미지 좌표) */
   initialNaturalBox?: Box | null
 }
@@ -43,7 +42,6 @@ async function cropDataUrl(srcDataUrl: string, box: Box): Promise<string> {
 export default function OcrModal({
   memo,
   onClose,
-  onCreateTextMemo,
   initialNaturalBox,
 }: Props) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
@@ -229,12 +227,6 @@ export default function OcrModal({
     }
   }
 
-  const handleMakeMemo = () => {
-    if (!text) return
-    onCreateTextMemo(text)
-    onClose()
-  }
-
   const visibleBox = dragBox ?? selection
 
   return (
@@ -356,13 +348,6 @@ export default function OcrModal({
                   className="px-3 py-1.5 rounded bg-amber-400 hover:bg-amber-300 disabled:bg-gray-200 disabled:text-black/40 text-black font-semibold text-sm transition-colors"
                 >
                   {copied ? '✓ 복사됨' : '📋 클립보드에 복사'}
-                </button>
-                <button
-                  onClick={handleMakeMemo}
-                  disabled={!text}
-                  className="px-3 py-1.5 rounded bg-white border border-black/15 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-black/40 text-sm font-medium transition-colors"
-                >
-                  📝 텍스트 메모로 만들기
                 </button>
               </div>
             </>

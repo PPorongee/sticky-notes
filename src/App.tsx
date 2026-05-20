@@ -467,14 +467,6 @@ export default function App() {
                 setOcrTargetId(null)
                 setOcrInitialBox(null)
               }}
-              onCreateTextMemo={text =>
-                store.createMemo({
-                  type: detectType(text),
-                  content: text,
-                  x: m.x + 30,
-                  y: m.y + 30,
-                })
-              }
             />
           )
         })()}
