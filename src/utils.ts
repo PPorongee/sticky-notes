@@ -61,11 +61,21 @@ function overlaps(a: Box, b: Box, pad = 12): boolean {
 }
 
 /**
- * 보드에서 새 메모를 둘 빈 공간을 찾는다. 좌상단부터 그리드 스캔.
- * 못 찾으면 fallback: 화면 상단 중앙 (overlap 허용, aboveAll=true).
+ * 보드에서 새 메모를 둘 위치를 찾는다.
+ * - 상단 중앙에서 가까운 셀부터 그리드 스캔 → 모든 메모와 안 겹치는 첫 자리
+ * - 빈 자리가 없으면 가장 오래된 메모부터 하나씩 무시하면서 다시 검색
+ *   (= 새 메모끼리는 절대 안 겹치고, 오래된 메모 위에는 겹쳐 올라감)
+ * - aboveAll: 어떤 기존 메모와 겹쳐 배치되었으면 true → 호출자가 selected로 만들어 z-index 위로
  */
 export function findFreePosition(
-  existing: Array<{ x: number; y: number; type: MemoType; width?: number; height?: number }>,
+  existing: Array<{
+    x: number
+    y: number
+    type: MemoType
+    width?: number
+    height?: number
+    createdAt: number
+  }>,
   newMemo: { type: MemoType; width?: number; height?: number },
 ): { x: number; y: number; aboveAll: boolean } {
   const { w, h } = estimateSize(newMemo)
@@ -76,15 +86,32 @@ export function findFreePosition(
   const maxX = Math.max(minX, vw - w - 20)
   const maxY = Math.max(minY, vh - h - 20)
   const step = 40
+  const centerX = vw / 2 - w / 2
 
-  const boxes: Box[] = existing.map(m => {
-    const s = estimateSize(m)
-    return { x: m.x, y: m.y, w: s.w, h: s.h }
-  })
-
+  // 후보 셀들 만들고 상단 중앙에서 가까운 순으로 정렬
+  const cells: Array<{ x: number; y: number; dist: number }> = []
   for (let y = minY; y <= maxY; y += step) {
     for (let x = minX; x <= maxX; x += step) {
-      const cand: Box = { x, y, w, h }
+      cells.push({ x, y, dist: Math.hypot(x - centerX, (y - minY) * 1.4) })
+    }
+  }
+  cells.sort((a, b) => a.dist - b.dist)
+  if (cells.length === 0) {
+    return { x: minX, y: minY, aboveAll: true }
+  }
+
+  // 메모를 오래된 순으로 정렬 → ignoreCount만큼 앞에서 잘라내며 점진적으로 무시
+  const sorted = [...existing].sort((a, b) => a.createdAt - b.createdAt)
+
+  for (let ignoreCount = 0; ignoreCount <= sorted.length; ignoreCount++) {
+    const considered = sorted.slice(ignoreCount)
+    const boxes: Box[] = considered.map(m => {
+      const s = estimateSize(m)
+      return { x: m.x, y: m.y, w: s.w, h: s.h }
+    })
+
+    for (const cell of cells) {
+      const cand: Box = { x: cell.x, y: cell.y, w, h }
       let collide = false
       for (const b of boxes) {
         if (overlaps(cand, b)) {
@@ -92,16 +119,14 @@ export function findFreePosition(
           break
         }
       }
-      if (!collide) return { x, y, aboveAll: false }
+      if (!collide) {
+        return { x: cell.x, y: cell.y, aboveAll: ignoreCount > 0 }
+      }
     }
   }
 
-  // 빈 공간 없음 — 상단 중앙으로 (살짝 좌우 흔들기)
-  return {
-    x: Math.max(minX, Math.round(vw / 2 - w / 2 + (Math.random() - 0.5) * 60)),
-    y: minY + 10,
-    aboveAll: true,
-  }
+  // 이론상 도달 안 함 (ignoreCount === sorted.length 단계에서 considered가 비어 첫 셀 반환됨)
+  return { x: cells[0].x, y: cells[0].y, aboveAll: true }
 }
 
 export function blobToDataUrl(blob: Blob): Promise<string> {
