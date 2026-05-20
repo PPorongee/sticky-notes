@@ -134,7 +134,7 @@ export default function MemoModal({ memo, onClose, onUpdate, onOcrRequest, onSha
 
   return (
     <div
-      className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 animate-toast-in"
+      className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 animate-modal-in"
       onClick={onClose}
     >
       <div
