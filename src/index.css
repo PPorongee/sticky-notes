@@ -11,23 +11,14 @@ html, body, #root {
 body {
   overflow: hidden;
   color: #222;
-  background: #8c623a;
+  background: #f4efe6;
 }
 
-/* 실제 코르크보드 질감 — 따뜻한 갈색 + SVG fractal noise + 부드러운 비네팅 */
 .board-bg {
-  background-color: #b08358;
+  background-color: #f7f3ec;
   background-image:
-    /* 위쪽이 살짝 더 밝게 (조명 느낌) */
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 230, 195, 0.18), transparent 70%),
-    /* 가장자리 살짝 어둡게 (비네팅) */
-    radial-gradient(ellipse at center, transparent 55%, rgba(60, 35, 15, 0.25) 100%),
-    /* 코르크 입자 — SVG fractal noise */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.32  0 0 0 0 0.2  0 0 0 0 0.08  0 0 0 0.55 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-    /* 더 큰 입자 — 코르크 알갱이 강조 */
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='1' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.28  0 0 0 0 0.12  0 0 0 0.35 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  background-size: auto, auto, 320px 320px, 180px 180px;
-  background-repeat: no-repeat, no-repeat, repeat, repeat;
+    radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 0);
+  background-size: 18px 18px;
 }
 
 @keyframes toast-in {
