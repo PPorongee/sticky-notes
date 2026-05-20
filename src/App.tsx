@@ -9,7 +9,7 @@ import OcrModal from './components/OcrModal'
 import ShareModal from './components/ShareModal'
 import ImportPreview from './components/ImportPreview'
 import { useMemoStore } from './store'
-import { blobToDataUrl, detectType } from './utils'
+import { blobToDataUrl, detectType, findFreePosition } from './utils'
 import type { SharePayload } from './share'
 import type { Memo } from './types'
 
@@ -97,7 +97,14 @@ export default function App() {
               images: [...(selected.images ?? []), dataUrl],
             })
           } else {
-            store.createMemo({ type: 'image', content: dataUrl })
+            const pos = findFreePosition(active, { type: 'image' })
+            const memo = store.createMemo({
+              type: 'image',
+              content: dataUrl,
+              x: pos.x,
+              y: pos.y,
+            })
+            if (pos.aboveAll) setSelectedId(memo.id)
           }
         } catch (err) {
           console.error('image paste failed', err)
@@ -134,11 +141,14 @@ export default function App() {
           })
         } else {
           // 새 메모 (이미지 메모에 텍스트 paste한 경우 등 포함)
-          store.createMemo({ type: detectType(text), content: text })
+          const type = detectType(text)
+          const pos = findFreePosition(active, { type })
+          const memo = store.createMemo({ type, content: text, x: pos.x, y: pos.y })
+          if (pos.aboveAll) setSelectedId(memo.id)
         }
       }
     },
-    [store, selectedId],
+    [store, selectedId, active],
   )
 
   useEffect(() => {
@@ -147,8 +157,10 @@ export default function App() {
   }, [handlePaste])
 
   const handleCreateEmpty = useCallback(() => {
-    store.createMemo({ type: 'text', content: '' })
-  }, [store])
+    const pos = findFreePosition(active, { type: 'text' })
+    const memo = store.createMemo({ type: 'text', content: '', x: pos.x, y: pos.y })
+    if (pos.aboveAll) setSelectedId(memo.id)
+  }, [store, active])
 
   // ?s=<id> URL로 들어왔으면 import 흐름 시작
   useEffect(() => {
@@ -190,16 +202,29 @@ export default function App() {
 
   const handleImportMemos = useCallback(
     (memos: Memo[]) => {
+      // 한 번에 여러 개를 만들 때 store 상태가 아직 안 반영돼 있으니 누적 array로 위치 계산
+      const accum = [...active]
+      let lastAboveAllId: string | null = null
       for (const m of memos) {
-        store.createMemo({
+        const pos = findFreePosition(accum, {
+          type: m.type,
+          width: m.width,
+          height: m.height,
+        })
+        const created = store.createMemo({
           type: m.type,
           content: m.content,
           color: m.color,
           images: m.images,
           width: m.width,
           height: m.height,
+          x: pos.x,
+          y: pos.y,
         })
+        accum.push(created)
+        if (pos.aboveAll) lastAboveAllId = created.id
       }
+      if (lastAboveAllId) setSelectedId(lastAboveAllId)
       setImportId(null)
       // 주소창의 ?s=<id> 정리해서 새로고침 시 다시 import 모달이 안 뜨도록
       if (typeof window !== 'undefined') {
@@ -208,7 +233,7 @@ export default function App() {
         window.history.replaceState({}, '', url.toString())
       }
     },
-    [store],
+    [store, active],
   )
 
   const handleImportCancel = useCallback(() => {
