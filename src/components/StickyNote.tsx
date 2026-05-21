@@ -81,6 +81,7 @@ export default function StickyNote({
     e.preventDefault()
     e.stopPropagation()
     onSelect()
+
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -88,48 +89,51 @@ export default function StickyNote({
       origY: pos.y,
       moved: false,
     }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const s = dragRef.current
-    if (!s) return
-    const dx = e.clientX - s.startX
-    const dy = e.clientY - s.startY
-    if (!s.moved && Math.hypot(dx, dy) > 4) {
-      s.moved = true
-      setDragging(true)
-      onDragStart()
-    }
-    if (s.moved) {
-      setPos({ x: s.origX + dx, y: s.origY + dy })
-      onDragMove(e.clientX, e.clientY)
-    }
-  }
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    const s = dragRef.current
-    if (!s) return
-    try {
-      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
-    } catch {
-      /* ignore */
-    }
-    dragRef.current = null
-
-    if (s.moved) {
-      const hitTrash = checkTrashHit(e.clientX, e.clientY)
-      setDragging(false)
-      onDragEnd()
-      if (hitTrash) {
-        onDelete()
-      } else {
-        onUpdate({ x: pos.x, y: pos.y })
+    // window 레벨에 listener를 달면 자식 re-render나 메모 밖으로 마우스가 나가도 절대 끊기지 않는다
+    const onMove = (ev: PointerEvent) => {
+      const s = dragRef.current
+      if (!s) return
+      const dx = ev.clientX - s.startX
+      const dy = ev.clientY - s.startY
+      if (!s.moved && Math.hypot(dx, dy) > 5) {
+        s.moved = true
+        setDragging(true)
+        onDragStart()
       }
-    } else {
-      // 움직임 없는 클릭은 메모 종류와 무관하게 확대 모달
-      onExpand()
+      if (s.moved) {
+        setPos({ x: s.origX + dx, y: s.origY + dy })
+        onDragMove(ev.clientX, ev.clientY)
+      }
     }
+
+    const finish = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+      const s = dragRef.current
+      if (!s) return
+      dragRef.current = null
+      if (s.moved) {
+        const finalX = s.origX + (ev.clientX - s.startX)
+        const finalY = s.origY + (ev.clientY - s.startY)
+        const hitTrash = checkTrashHit(ev.clientX, ev.clientY)
+        setDragging(false)
+        onDragEnd()
+        if (hitTrash) {
+          onDelete()
+        } else {
+          onUpdate({ x: finalX, y: finalY })
+        }
+      } else {
+        // 움직임 없는 클릭은 메모 종류와 무관하게 확대 모달
+        onExpand()
+      }
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
   }
 
   const commitEdit = () => {
@@ -175,9 +179,6 @@ export default function StickyNote({
         touchAction: 'none',
       }}
       onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
       onClick={e => {
         e.stopPropagation()
         onSelect()
