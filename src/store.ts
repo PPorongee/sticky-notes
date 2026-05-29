@@ -96,6 +96,24 @@ export function useMemoStore() {
     dbDelete(id).catch(err => console.error('delete failed', err))
   }, [])
 
+  // 백업 파일 복원: id가 같으면 덮어쓰고, 없으면 추가한다 (현재 보드는 보존).
+  const importMemos = useCallback(
+    (incoming: Memo[]): number => {
+      let added = 0
+      setMemos(prev => {
+        const byId = new Map(prev.map(m => [m.id, m]))
+        for (const m of incoming) {
+          if (!byId.has(m.id)) added++
+          byId.set(m.id, m)
+          persist(m)
+        }
+        return Array.from(byId.values())
+      })
+      return added
+    },
+    [persist],
+  )
+
   const emptyTrash = useCallback(() => {
     setMemos(prev => {
       const toDelete = prev.filter(m => m.deletedAt).map(m => m.id)
@@ -123,5 +141,6 @@ export function useMemoStore() {
     permaDelete,
     emptyTrash,
     setColor,
+    importMemos,
   }
 }

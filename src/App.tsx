@@ -10,6 +10,8 @@ import ShareModal from './components/ShareModal'
 import ImportPreview from './components/ImportPreview'
 import { useMemoStore } from './store'
 import { blobToDataUrl, detectType, findFreePosition } from './utils'
+import { requestPersistentStorage } from './storage'
+import { downloadBackup, parseBackup } from './backup'
 import type { SharePayload } from './share'
 import type { Memo } from './types'
 
@@ -39,9 +41,12 @@ export default function App() {
     null,
   )
   const [importId, setImportId] = useState<string | null>(null)
-  const [toast, setToast] = useState<{ key: number; message: string; onUndo: () => void } | null>(
-    null,
-  )
+  const [toast, setToast] = useState<{
+    key: number
+    message: string
+    actionLabel?: string
+    onAction?: () => void
+  } | null>(null)
   const [dropping, setDropping] = useState(false)
   const dragCounter = useRef(0)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -169,6 +174,43 @@ export default function App() {
     const s = params.get('s')
     if (s) setImportId(s)
   }, [])
+
+  // 브라우저에 저장소를 영구 보관하도록 요청 → 컴퓨터를 꺼도 메모가 유지됨
+  useEffect(() => {
+    requestPersistentStorage().then(result => {
+      console.log('[storage] persistent:', result)
+    })
+  }, [])
+
+  const handleDownloadBackup = useCallback(() => {
+    if (store.memos.length === 0) return
+    // 휴지통 메모까지 포함해 전체를 백업한다 (복원 시 그대로 되살아남)
+    downloadBackup(store.memos)
+    setToast({ key: Date.now(), message: '백업 파일을 저장했습니다 (.json)' })
+  }, [store.memos])
+
+  const handleRestoreBackup = useCallback(
+    async (file: File) => {
+      try {
+        const text = await file.text()
+        const memos = parseBackup(text)
+        const added = store.importMemos(memos)
+        setToast({
+          key: Date.now(),
+          message:
+            added > 0
+              ? `백업에서 ${added}개 메모를 불러왔습니다.`
+              : '백업을 불러왔습니다 (이미 있는 메모를 갱신).',
+        })
+      } catch (err) {
+        setToast({
+          key: Date.now(),
+          message: err instanceof Error ? err.message : '복원에 실패했습니다',
+        })
+      }
+    },
+    [store],
+  )
 
   const handleShareBoard = useCallback(() => {
     if (active.length === 0) return
@@ -324,7 +366,8 @@ export default function App() {
       setToast({
         key: Date.now(),
         message: '메모를 휴지통으로 옮겼습니다.',
-        onUndo: () => {
+        actionLabel: '되돌리기',
+        onAction: () => {
           store.restore(id)
           setToast(null)
         },
@@ -403,6 +446,9 @@ export default function App() {
         onCreateEmpty={handleCreateEmpty}
         onShareBoard={handleShareBoard}
         shareDisabled={active.length === 0}
+        onDownloadBackup={handleDownloadBackup}
+        onRestoreBackup={handleRestoreBackup}
+        backupDisabled={store.memos.length === 0}
         searchRef={searchRef}
       />
 
@@ -491,8 +537,8 @@ export default function App() {
         <Toast
           key={toast.key}
           message={toast.message}
-          actionLabel="되돌리기"
-          onAction={toast.onUndo}
+          actionLabel={toast.actionLabel}
+          onAction={toast.onAction}
           onClose={() => setToast(null)}
         />
       )}
